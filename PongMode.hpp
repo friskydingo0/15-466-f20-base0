@@ -1,3 +1,4 @@
+#pragma once
 #include "ColorTextureProgram.hpp"
 
 #include "Mode.hpp"
@@ -7,6 +8,8 @@
 
 #include <vector>
 #include <deque>
+
+#include "Obstacle.hpp"
 
 /*
  * PongMode is a game mode that implements a single-player game of Pong.
@@ -32,6 +35,8 @@ struct PongMode : Mode {
 
 	glm::vec2 ball = glm::vec2(0.0f, 0.0f);
 	glm::vec2 ball_velocity = glm::vec2(-1.0f, 0.0f);
+
+	Obstacle* obstacle;
 
 	uint32_t left_score = 0;
 	uint32_t right_score = 0;

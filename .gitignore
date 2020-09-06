@@ -3,3 +3,6 @@ dist/README-SDL.txt
 dist/SDL.dll
 dist/pong
 dist/pong.exe
+dist/SDL2.dll
+dist/pong.ilk
+dist/pong.pdb

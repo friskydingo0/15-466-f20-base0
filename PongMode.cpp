@@ -15,6 +15,8 @@ PongMode::PongMode() {
 	ball_trail.emplace_back(ball, trail_length);
 	ball_trail.emplace_back(ball, 0.0f);
 
+	// Create a new obstacle
+	obstacle = new Obstacle(glm::vec2(-1.0f, 0.0f), glm::vec2(0.5f,0.5f));
 	
 	//----- allocate OpenGL resources -----
 	{ //vertex buffer:
@@ -170,7 +172,7 @@ void PongMode::update(float elapsed) {
 
 	//---- collision handling ----
 
-	//paddles:
+	//paddles:	// Is this like a lambda expression?
 	auto paddle_vs_ball = [this](glm::vec2 const &paddle) {
 		//compute area of overlap:
 		glm::vec2 min = glm::max(paddle - paddle_radius, ball - ball_radius);
@@ -204,6 +206,40 @@ void PongMode::update(float elapsed) {
 	};
 	paddle_vs_ball(left_paddle);
 	paddle_vs_ball(right_paddle);
+	
+	// check collision between ball and obstacle(s)
+	auto obstacle_vs_ball = [this](Obstacle* obst) {
+		// compute overlap area
+		glm::vec2 min = glm::max(obst->center - obst->size, ball - ball_radius);
+		glm::vec2 max = glm::min(obst->center + obst->size, ball + ball_radius);
+
+		//if no overlap, no collision:
+		if (min.x > max.x || min.y > max.y) return;
+
+		if (max.x - min.x > max.y - min.y) {
+			
+			if (ball.y > obst->center.y) {
+				ball.y = obst->center.y + obst->size.y + ball_radius.y;
+				ball_velocity.y = std::abs(ball_velocity.y);
+			} else {
+				ball.y = obst->center.y - obst->size.y - ball_radius.y;
+				ball_velocity.y = -std::abs(ball_velocity.y);
+			}
+		}
+		else {
+			if (ball.x > obst->center.x) {
+				ball.x = obst->center.x + obst->size.x + ball_radius.x;
+				ball_velocity.x = std::abs(ball_velocity.x);
+			} else {
+				ball.x = obst->center.x - obst->size.x - ball_radius.x;
+				ball_velocity.x = -std::abs(ball_velocity.x);
+			}
+		}
+		
+	};
+	obstacle_vs_ball(obstacle);
+
+	
 
 	//court walls:
 	if (ball.y > court_radius.y - ball_radius.y) {
@@ -266,6 +302,8 @@ void PongMode::draw(glm::uvec2 const &drawable_size) {
 		HEX_TO_U8VEC4(0x9e7e4496), HEX_TO_U8VEC4(0xa6844887), HEX_TO_U8VEC4(0xa9864884),
 		HEX_TO_U8VEC4(0xad8a4a7c),
 	};
+
+	const glm::u8vec4 obst_color = HEX_TO_U8VEC4(0x945900ff);
 	#undef HEX_TO_U8VEC4
 
 	//other useful drawing constants:
@@ -338,6 +376,9 @@ void PongMode::draw(glm::uvec2 const &drawable_size) {
 
 	//ball:
 	draw_rectangle(ball, ball_radius, fg_color);
+
+	// Obstacles
+	draw_rectangle(obstacle->center, obstacle->size, obst_color);
 
 	//scores:
 	glm::vec2 score_radius = glm::vec2(0.1f, 0.1f);
