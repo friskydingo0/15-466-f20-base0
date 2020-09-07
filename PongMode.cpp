@@ -8,6 +8,8 @@
 
 #include <random>
 
+static std::mt19937 mt; //mersenne twister pseudo-random number generator
+
 PongMode::PongMode() {
 
 	//set up trail as if ball has been here for 'forever':
@@ -15,9 +17,6 @@ PongMode::PongMode() {
 	ball_trail.emplace_back(ball, trail_length);
 	ball_trail.emplace_back(ball, 0.0f);
 
-	// Create a new obstacle
-	obstacle = new Obstacle(glm::vec2(-1.0f, 0.0f), glm::vec2(0.5f,0.5f));
-	
 	//----- allocate OpenGL resources -----
 	{ //vertex buffer:
 		glGenBuffers(1, &vertex_buffer);
@@ -135,7 +134,7 @@ bool PongMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PongMode::update(float elapsed) {
 
-	static std::mt19937 mt; //mersenne twister pseudo-random number generator
+	// Changing the scope of the random number gen. It's too useful for only update() to use it
 
 	//----- paddle update -----
 
@@ -202,7 +201,11 @@ void PongMode::update(float elapsed) {
 			//warp y velocity based on offset from paddle center:
 			float vel = (ball.y - paddle.y) / (paddle_radius.y + ball_radius.y);
 			ball_velocity.y = glm::mix(ball_velocity.y, vel, 0.75f);
+
+			// --- This is where a new obstacle should be created ---
+			create_obstacle(ball);
 		}
+
 	};
 	paddle_vs_ball(left_paddle);
 	paddle_vs_ball(right_paddle);
@@ -210,8 +213,8 @@ void PongMode::update(float elapsed) {
 	// check collision between ball and obstacle(s)
 	auto obstacle_vs_ball = [this](Obstacle* obst) {
 		// compute overlap area
-		glm::vec2 min = glm::max(obst->center - obst->size, ball - ball_radius);
-		glm::vec2 max = glm::min(obst->center + obst->size, ball + ball_radius);
+		glm::vec2 min = glm::max(obst->center - obst->radius, ball - ball_radius);
+		glm::vec2 max = glm::min(obst->center + obst->radius, ball + ball_radius);
 
 		//if no overlap, no collision:
 		if (min.x > max.x || min.y > max.y) return;
@@ -219,28 +222,28 @@ void PongMode::update(float elapsed) {
 		if (max.x - min.x > max.y - min.y) {
 			
 			if (ball.y > obst->center.y) {
-				ball.y = obst->center.y + obst->size.y + ball_radius.y;
+				ball.y = obst->center.y + obst->radius.y + ball_radius.y;
 				ball_velocity.y = std::abs(ball_velocity.y);
 			} else {
-				ball.y = obst->center.y - obst->size.y - ball_radius.y;
+				ball.y = obst->center.y - obst->radius.y - ball_radius.y;
 				ball_velocity.y = -std::abs(ball_velocity.y);
 			}
 		}
 		else {
 			if (ball.x > obst->center.x) {
-				ball.x = obst->center.x + obst->size.x + ball_radius.x;
+				ball.x = obst->center.x + obst->radius.x + ball_radius.x;
 				ball_velocity.x = std::abs(ball_velocity.x);
 			} else {
-				ball.x = obst->center.x - obst->size.x - ball_radius.x;
+				ball.x = obst->center.x - obst->radius.x - ball_radius.x;
 				ball_velocity.x = -std::abs(ball_velocity.x);
 			}
 		}
-		
 	};
-	obstacle_vs_ball(obstacle);
 
+	for (auto& obs : obstacles) {
+		obstacle_vs_ball(obs);
+	}
 	
-
 	//court walls:
 	if (ball.y > court_radius.y - ball_radius.y) {
 		ball.y = court_radius.y - ball_radius.y;
@@ -259,14 +262,14 @@ void PongMode::update(float elapsed) {
 		ball.x = court_radius.x - ball_radius.x;
 		if (ball_velocity.x > 0.0f) {
 			ball_velocity.x = -ball_velocity.x;
-			left_score += 1;
+			left_score += 1;	// Player score
 		}
 	}
 	if (ball.x < -court_radius.x + ball_radius.x) {
 		ball.x = -court_radius.x + ball_radius.x;
 		if (ball_velocity.x < 0.0f) {
 			ball_velocity.x = -ball_velocity.x;
-			right_score += 1;
+			right_score += 1;	// Comp score
 		}
 	}
 
@@ -378,7 +381,9 @@ void PongMode::draw(glm::uvec2 const &drawable_size) {
 	draw_rectangle(ball, ball_radius, fg_color);
 
 	// Obstacles
-	draw_rectangle(obstacle->center, obstacle->size, obst_color);
+	for (auto& obs : obstacles) {
+		draw_rectangle(obs->center, obs->radius, obst_color);
+	}
 
 	//scores:
 	glm::vec2 score_radius = glm::vec2(0.1f, 0.1f);
@@ -477,4 +482,14 @@ void PongMode::draw(glm::uvec2 const &drawable_size) {
 
 	GL_ERRORS(); //PARANOIA: print errors just in case we did something wrong.
 
+}
+
+void PongMode::create_obstacle(glm::vec2 const &contactPos){
+	// pick a random value between 0 and +/- screen extents
+	// normalize the value and assign it to the color of the obstacle
+	// Place the obstacle at a random offset from the opponent's paddle
+	float randomNum = mt() / (float)mt.max();
+	float randomX = randomNum * (-contactPos.x);
+
+	obstacles.push_back(new Obstacle(glm::vec2(randomX, contactPos.y)));
 }

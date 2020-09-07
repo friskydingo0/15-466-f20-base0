@@ -24,6 +24,9 @@ struct PongMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
+	// additional functions for handling obstacle creation
+	void create_obstacle(glm::vec2 const &pos);
+
 	//----- game state -----
 
 	glm::vec2 court_radius = glm::vec2(7.0f, 5.0f);
@@ -36,7 +39,8 @@ struct PongMode : Mode {
 	glm::vec2 ball = glm::vec2(0.0f, 0.0f);
 	glm::vec2 ball_velocity = glm::vec2(-1.0f, 0.0f);
 
-	Obstacle* obstacle;
+	// new obstacle list
+	std::vector< Obstacle* > obstacles;
 
 	uint32_t left_score = 0;
 	uint32_t right_score = 0;
