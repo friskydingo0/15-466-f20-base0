@@ -13,5 +13,6 @@ struct Obstacle{
 
     glm::vec2 center;
     glm::vec2 radius = glm::vec2(0.25f, 0.25f);
+    glm::u8vec4 color;
 };
 

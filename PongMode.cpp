@@ -306,7 +306,7 @@ void PongMode::draw(glm::uvec2 const &drawable_size) {
 		HEX_TO_U8VEC4(0xad8a4a7c),
 	};
 
-	const glm::u8vec4 obst_color = HEX_TO_U8VEC4(0x945900ff);
+	const glm::u8vec4 obst_color = HEX_TO_U8VEC4(0xff5900ff);
 	#undef HEX_TO_U8VEC4
 
 	//other useful drawing constants:
@@ -382,7 +382,7 @@ void PongMode::draw(glm::uvec2 const &drawable_size) {
 
 	// Obstacles
 	for (auto& obs : obstacles) {
-		draw_rectangle(obs->center, obs->radius, obst_color);
+		draw_rectangle(obs->center, obs->radius, obs->color);
 	}
 
 	//scores:
@@ -490,6 +490,10 @@ void PongMode::create_obstacle(glm::vec2 const &contactPos){
 	// Place the obstacle at a random offset from the opponent's paddle
 	float randomNum = mt() / (float)mt.max();
 	float randomX = randomNum * (-contactPos.x);
+	unsigned randomGreen = (int)(randomNum * 0xff);
+	
+	Obstacle* newObstacle = new Obstacle(glm::vec2(randomX, contactPos.y));
+	newObstacle->color = glm::u8vec4( 0x1f, (randomGreen) & 0xff, 0x1f, 0xff );
 
-	obstacles.push_back(new Obstacle(glm::vec2(randomX, contactPos.y)));
+	obstacles.push_back(newObstacle);
 }
